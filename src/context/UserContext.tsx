@@ -50,17 +50,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Initial session check
         const initSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setSession(session);
-            setUser(session?.user ?? null);
+            const { data: { session: fetchedSession } } = await supabase.auth.getSession();
 
-            if (session?.user) {
-                // Prefer metadata role if available for speed
-                if (session.user.user_metadata?.role) {
-                    setRole(session.user.user_metadata.role);
+            // Safeguard against stringified session in store
+            let parsedSession = fetchedSession;
+            if (typeof parsedSession === 'string') {
+                try {
+                    parsedSession = JSON.parse(parsedSession);
+                } catch (e) {
+                    parsedSession = null;
                 }
-                await fetchProfile(session.user.id);
-                await checkUnread(session.user.id);
+            }
+
+            setSession(parsedSession);
+            setUser(parsedSession?.user ?? null);
+
+            if (parsedSession?.user) {
+                // Prefer metadata role if available for speed
+                if (parsedSession.user.user_metadata?.role) {
+                    setRole(parsedSession.user.user_metadata.role);
+                }
+                await fetchProfile(parsedSession.user.id);
+                await checkUnread(parsedSession.user.id);
             }
             setLoading(false);
         };
@@ -68,16 +79,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
         initSession();
 
         // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-
-            if (session?.user) {
-                if (session.user.user_metadata?.role) {
-                    setRole(session.user.user_metadata.role);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+            // Safeguard against stringified session
+            let parsedSession = newSession;
+            if (typeof parsedSession === 'string') {
+                try {
+                    parsedSession = JSON.parse(parsedSession);
+                } catch (e) {
+                    parsedSession = null;
                 }
-                await fetchProfile(session.user.id);
-                await checkUnread(session.user.id);
+            }
+
+            setSession(parsedSession);
+            setUser(parsedSession?.user ?? null);
+
+            if (parsedSession?.user) {
+                if (parsedSession.user.user_metadata?.role) {
+                    setRole(parsedSession.user.user_metadata.role);
+                }
+                await fetchProfile(parsedSession.user.id);
+                await checkUnread(parsedSession.user.id);
             } else {
                 setProfile(null);
                 setRole(null);
