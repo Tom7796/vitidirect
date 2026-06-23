@@ -25,6 +25,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     const checkUnread = async (userId: string) => {
+        if (!supabase) return;
         const { count } = await supabase
             .from("messages")
             .select("*", { count: "exact", head: true })
@@ -35,6 +36,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     };
 
     const fetchProfile = async (userId: string) => {
+        if (!supabase) return;
         const { data, error } = await supabase
             .from("profiles")
             .select("*")
@@ -50,6 +52,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Initial session check
         const initSession = async () => {
+            if (!supabase) {
+                setLoading(false);
+                return;
+            }
             const { data: { session: fetchedSession } } = await supabase.auth.getSession();
 
             // Safeguard against stringified session in store
@@ -79,6 +85,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         initSession();
 
         // Listen for changes
+        if (!supabase) return;
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
             // Safeguard against stringified session
             let parsedSession = newSession;
@@ -130,7 +137,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }, [user?.id]);
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        if (supabase) {
+            await supabase.auth.signOut();
+        }
         setSession(null);
         setUser(null);
         setProfile(null);
