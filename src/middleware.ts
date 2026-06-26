@@ -7,6 +7,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next()
     }
 
+    // Skip middleware for the standalone police guidelines app (no auth needed)
+    if (request.nextUrl.pathname.startsWith('/police')) {
+        return NextResponse.next()
+    }
+
     let response = NextResponse.next({
         request: {
             headers: request.headers,
@@ -100,6 +105,6 @@ export const config = {
          * - /booking (booking system routes)
          * Feel free to modify this pattern to include more paths.
          */
-        '/((?!_next/static|_next/image|favicon.ico|booking|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        '/((?!_next/static|_next/image|favicon.ico|booking|police|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 }
